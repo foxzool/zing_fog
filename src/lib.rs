@@ -1,7 +1,7 @@
 use crate::{
     chunk::ChunkManager,
     fog::{FogOfWarConfig, FogOfWarMeta, FogSettings},
-    // node::{FogNode2d, FogNode2dLabel},
+    node::{FogNode2d, FogNode2dLabel},
 };
 use bevy::{
     app::{App, Plugin},
@@ -17,6 +17,7 @@ use bevy::prelude::IntoSystemConfigs;
 use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy_asset::{Handle, load_internal_asset};
 use crate::fog::prepare_fog_settings;
+use crate::node::{prepare_bind_groups, FogOfWar2dPipeline};
 // use crate::node::prepare_fog_settings;
 
 pub mod prelude;
@@ -24,7 +25,7 @@ pub mod prelude;
 mod chunk;
 mod fog;
 
-// mod node;
+mod node;
 
 #[cfg(feature = "2d")]
 pub const FOG_2D_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(2645352199453808407);
@@ -52,15 +53,21 @@ impl Plugin for ZingFogPlugins {
         render_app
             .init_resource::<FogOfWarMeta>()
             .add_systems(Render, prepare_fog_settings.in_set(RenderSet::PrepareResources))
-            // .add_render_graph_node::<ViewNodeRunner<FogNode2d>>(Core2d, FogNode2dLabel)
-            // .add_render_graph_edges(
-            //     Core2d,
-            //     (
-            //         Node2d::MainTransparentPass,
-            //         FogNode2dLabel,
-            //         Node2d::EndMainPass,
-            //     ),
-            // )
+            .add_systems(Render, prepare_bind_groups.in_set(RenderSet::Prepare))
+            .add_render_graph_node::<ViewNodeRunner<FogNode2d>>(Core2d, FogNode2dLabel)
+            .add_render_graph_edges(
+                Core2d,
+                (
+                    Node2d::MainTransparentPass,
+                    FogNode2dLabel,
+                    Node2d::EndMainPass,
+                ),
+            )
         ;
+    }
+
+    fn finish(&self, app: &mut App) {
+        let render_app = app.sub_app_mut(RenderApp);
+        render_app.init_resource::<FogOfWar2dPipeline>();
     }
 }

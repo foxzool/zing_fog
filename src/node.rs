@@ -1,34 +1,31 @@
-use crate::fog::{FogCameraMarker, FogSettings, GpuFogSettings};
+use crate::fog::{FogOfWarMeta, FogSettings, GpuFogSettings, ViewFogOfWarUniformOffset};
 use bevy::{
     asset::AssetServer,
     core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state,
     ecs::{query::QueryItem, system::lifetimeless::Read},
-    prelude::{Entity, FromWorld, Resource, Shader, With, World},
+    prelude::{Commands, Component, Entity, FromWorld, Res, Resource, Shader, With, World},
     render::{
         render_graph::{NodeRunError, RenderGraphContext, RenderLabel, ViewNode},
         render_resource::{
-            BindGroupEntry, BindGroupLayout, BindGroupLayoutEntries, BindGroupLayoutEntry,
-            BindingResource, BindingType, BlendComponent, BlendFactor, BlendOperation, BlendState,
-            BufferBinding, BufferBindingType, BufferInitDescriptor, BufferSize, BufferUsages,
-            CachedRenderPipelineId, ColorTargetState, ColorWrites, Extent3d, FragmentState,
-            FrontFace, LoadOp, MultisampleState, Operations, PipelineCache, PolygonMode,
-            PrimitiveState, RenderPassColorAttachment, RenderPassDescriptor,
-            RenderPipelineDescriptor, ShaderStages, StorageTextureAccess, StoreOp,
-            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-            TextureViewDescriptor, VertexState,
+            BindGroupEntries, BindGroupEntry, BindGroupLayout, BindGroupLayoutEntries,
+            BindGroupLayoutEntry, BindingResource, BindingType, BlendComponent, BlendFactor,
+            BlendOperation, BlendState, BufferBinding, BufferBindingType, BufferInitDescriptor,
+            BufferSize, BufferUsages, CachedRenderPipelineId, ColorTargetState, ColorWrites,
+            Extent3d, FragmentState, FrontFace, IndexFormat, LoadOp, MultisampleState, Operations,
+            PipelineCache, PolygonMode, PrimitiveState, PrimitiveTopology,
+            RenderPassColorAttachment, RenderPassDescriptor, RenderPipelineDescriptor,
+            ShaderStages, StorageTextureAccess, StoreOp, TextureDescriptor, TextureDimension,
+            TextureFormat, TextureUsages, TextureViewDescriptor, VertexState,
             binding_types::{
                 storage_buffer_read_only_sized, texture_storage_2d_array, uniform_buffer,
             },
         },
-        renderer::{RenderContext, RenderDevice},
-        view::{ExtractedView, ViewTarget, ViewUniform},
+        renderer::{RenderContext, RenderDevice, RenderQueue},
+        view::{ExtractedView, ViewTarget, ViewUniform, ViewUniforms},
     },
+    utils::default,
 };
-use bevy::prelude::{Commands, Res};
-use bevy::render::render_resource::{BindGroupEntries, IndexFormat};
-use bevy::render::renderer::RenderQueue;
-use bevy::render::view::ViewUniforms;
-use bevy::utils::default;
+use crate::FOG_2D_SHADER_HANDLE;
 
 /// 迷雾节点名称
 /// Fog node name
@@ -36,9 +33,9 @@ use bevy::utils::default;
 pub struct FogNode2dLabel;
 
 #[derive(Resource)]
-struct FogOfWar2dPipeline {
-    bind_group_layout: BindGroupLayout,
-    pipeline_id: CachedRenderPipelineId,
+pub struct FogOfWar2dPipeline {
+    pub bind_group_layout: BindGroupLayout,
+    pub pipeline_id: CachedRenderPipelineId,
 }
 
 impl FromWorld for FogOfWar2dPipeline {
@@ -52,11 +49,6 @@ impl FromWorld for FogOfWar2dPipeline {
         // let settings = world.resource::<FogSettings>();
         // // let chunk_size = settings.chunk_size;
 
-        // 等待着色器资源加载完成
-        // Wait for shader resource to be loaded
-        let shader_handle = world
-            .resource::<AssetServer>()
-            .load::<Shader>("shaders/fog2d.wgsl");
 
         let render_device = world.resource_mut::<RenderDevice>();
 
@@ -89,7 +81,7 @@ impl FromWorld for FogOfWar2dPipeline {
                 ShaderStages::FRAGMENT,
                 (
                     // uniform_buffer::<ViewUniform>(true),
-                    uniform_buffer::<GpuFogSettings>(false),
+                    uniform_buffer::<GpuFogSettings>(true),
                     // storage_buffer_read_only_sized(false, None),
                     // texture_storage_2d_array(
                     //     TextureFormat::R8Unorm,
@@ -106,9 +98,9 @@ impl FromWorld for FogOfWar2dPipeline {
                 layout: vec![bind_group_layout.clone()],
                 vertex: fullscreen_shader_vertex_state(),
                 fragment: Some(FragmentState {
-                    shader: shader_handle,
+                    shader: FOG_2D_SHADER_HANDLE,
                     shader_defs: vec![],
-                    entry_point: "fs_main".into(),
+                    entry_point: "fragment".into(),
                     targets: vec![Some(ColorTargetState {
                         format: TextureFormat::Rgba8UnormSrgb, // 明确指定格式
                         blend: Some(BlendState {
@@ -161,21 +153,21 @@ impl FromWorld for FogOfWar2dPipeline {
 pub struct FogNode2d;
 
 impl ViewNode for FogNode2d {
-    type ViewQuery = (Read<ViewTarget>);
-
+    type ViewQuery = (
+        Read<ViewTarget>,
+        Read<ViewFogOfWarUniformOffset>,
+    );
 
     fn run(
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        view_target: QueryItem<Self::ViewQuery>,
+        (view_target,  view_fog_offset): QueryItem<Self::ViewQuery>,
         world: &World,
     ) -> Result<(), NodeRunError> {
+        let pipeline_cache = world.resource::<PipelineCache>();
         let fog_of_war_pipeline = world.resource::<FogOfWar2dPipeline>();
         let view_uniforms = world.resource::<ViewUniforms>();
-        let pipeline_cache = world.resource::<PipelineCache>();
-        // let fog_sight_buffers = world.resource::<FogSight2dBuffers>();
-        // let ring_buffers = world.resource::<FogOfWarRingBuffers>();
 
         let Some(view_uniforms_binding) = view_uniforms.uniforms.binding() else {
             return Ok(());
@@ -186,7 +178,7 @@ impl ViewNode for FogNode2d {
             return Ok(());
         };
 
-        let Some(settings_binding) = world.resource::<FogOfWarSettingBuffer>().binding()
+        let Some(settings_binding) = world.resource::<FogOfWarMeta>().gpu_fog_settings.binding()
         else {
             return Ok(());
         };
@@ -219,12 +211,11 @@ impl ViewNode for FogNode2d {
         });
 
         render_pass.set_render_pipeline(pipeline);
-        render_pass.set_bind_group(0, bind_group, &[]);
-
+        render_pass.set_bind_group(0, &bind_group, &[view_fog_offset.offset]);
 
         render_pass.draw(0..3, 0..1);
         Ok(())
     }
 }
 
-
+pub fn prepare_bind_groups(mut commands: Commands) {}
