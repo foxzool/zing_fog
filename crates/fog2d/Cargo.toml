@@ -51,6 +51,8 @@ bevy = { version = "0.15", default-features = false, features = [
     "x11"
 ] }
 
+bevy_asset = { version = "0.15" }
+
 [lints]
 workspace = true
 

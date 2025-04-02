@@ -24,18 +24,6 @@ fn main() {
             debug_draw: true,
         })
         .add_plugins(ZingFogPlugins)
-        .insert_resource(FogSettings {
-            color: Color::srgba(1.0, 0.0, 0.0, 1.0),
-            density: 0.2,
-            fog_range: 1000.0,
-            max_intensity: 1.0,
-            // 相机周围的透明区域半径
-            // Clear radius around camera
-            clear_radius: 2.0,
-            // 边缘过渡效果宽度
-            // Edge falloff width
-            clear_falloff: 1.0,
-        })
         .add_systems(Startup, (setup, setup_ui))
         .add_systems(
             Update,
@@ -68,33 +56,33 @@ struct FogSettingsText;
 #[derive(Component)]
 struct ColorAnimatedText;
 
-fn setup(mut commands: Commands, mut fog_settings: ResMut<FogSettings>) {
-    // 配置迷雾设置
-    // Configure fog settings
-    *fog_settings = FogSettings {
-        // 使用深蓝色迷雾，透明度设置为 0.7
-        // Use deep blue fog with 0.7 alpha
-        color: Color::Srgba(Srgba::new(0.1, 0.2, 0.4, 0.7)),
-        // 中等密度
-        // Medium density
-        density: 0.6,
-        // 迷雾范围
-        // Fog range
-        fog_range: 1.5,
-        // 最大强度
-        // Maximum intensity
-        max_intensity: 0.85,
-        // 相机周围的透明区域半径
-        // Clear radius around camera
-        clear_radius: 0.3,
-        // 边缘过渡效果宽度
-        // Edge falloff width
-        clear_falloff: 0.1,
-    };
-
+fn setup(mut commands: Commands) {
     // 生成相机
     // Spawn camera
-    commands.spawn((Camera2d, FogCameraMarker, MainCamera));
+    commands.spawn((
+        Camera2d,
+        FogSettings {
+            // 使用深蓝色迷雾，透明度设置为 0.7
+            // Use deep blue fog with 0.7 alpha
+            color: Color::Srgba(Srgba::new(0.1, 0.2, 0.4, 0.7)),
+            // 中等密度
+            // Medium density
+            density: 0.6,
+            // 迷雾范围
+            // Fog range
+            fog_range: 1.5,
+            // 最大强度
+            // Maximum intensity
+            max_intensity: 0.85,
+            // 相机周围的透明区域半径
+            // Clear radius around camera
+            clear_radius: 0.3,
+            // 边缘过渡效果宽度
+            // Edge falloff width
+            clear_falloff: 0.1,
+        },
+        MainCamera,
+    ));
 
     // 生成一个红色方块来测试基本渲染功能
     // Spawn a red square to test basic rendering functionality
@@ -156,7 +144,7 @@ fn camera_movement(
 fn update_fog_settings(
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut fog_settings: ResMut<FogSettings>,
+    mut fog_settings: Single<&mut FogSettings>,
 ) {
     let delta = time.delta_secs();
     let mut changed = false;
@@ -352,7 +340,7 @@ fn update_fps_text(
 /// 更新迷雾设置文本系统
 /// Update fog settings text system
 fn update_fog_settings_text(
-    fog_settings: Res<FogSettings>,
+    fog_settings: Single<&FogSettings>,
     mut query: Query<&mut Text, With<FogSettingsText>>,
 ) {
     for mut text in &mut query {
