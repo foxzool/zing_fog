@@ -1,4 +1,4 @@
-use crate::fog::{FogOfWarMeta, FogSettings, GpuFogSettings, ViewFogOfWarUniformOffset};
+use crate::fog::{FogOfWarMeta, FogMaterial, GpuFogMaterial, ViewFogOfWarUniformOffset};
 use bevy::{
     asset::AssetServer,
     core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state,
@@ -81,7 +81,7 @@ impl FromWorld for FogOfWar2dPipeline {
                 ShaderStages::FRAGMENT,
                 (
                     // uniform_buffer::<ViewUniform>(true),
-                    uniform_buffer::<GpuFogSettings>(true),
+                    uniform_buffer::<GpuFogMaterial>(true),
                     // storage_buffer_read_only_sized(false, None),
                     // texture_storage_2d_array(
                     //     TextureFormat::R8Unorm,
@@ -218,4 +218,4 @@ impl ViewNode for FogNode2d {
     }
 }
 
-pub fn prepare_bind_groups(mut commands: Commands) {}
+pub fn prepare_bind_groups(commands: Commands) {}

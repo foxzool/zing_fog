@@ -1,6 +1,5 @@
 use crate::{
-    chunk::ChunkManager,
-    fog::{FogOfWarConfig, FogOfWarMeta, FogSettings, prepare_fog_settings},
+    fog::{FogOfWarConfig, FogOfWarMeta, FogMaterial, prepare_fog_settings},
     node::{FogNode2d, FogNode2dLabel, FogOfWar2dPipeline, prepare_bind_groups},
 };
 use bevy::{
@@ -35,8 +34,8 @@ impl Plugin for ZingFogPlugins {
 
         app.init_resource::<FogOfWarConfig>();
 
-        app.register_type::<FogSettings>()
-            .add_plugins(ExtractComponentPlugin::<FogSettings>::default());
+        app.register_type::<FogMaterial>()
+            .add_plugins(ExtractComponentPlugin::<FogMaterial>::default());
 
         let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
             return;

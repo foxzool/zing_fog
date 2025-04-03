@@ -1,4 +1,4 @@
 pub use crate::{
     ZingFogPlugins,
-    fog::{FogOfWarConfig, FogSettings},
+    fog::{FogOfWarConfig, FogMaterial},
 };

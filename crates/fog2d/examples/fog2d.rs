@@ -61,25 +61,10 @@ fn setup(mut commands: Commands) {
     // Spawn camera
     commands.spawn((
         Camera2d,
-        FogSettings {
-            // 使用深蓝色迷雾，透明度设置为 0.7
+        FogMaterial {
+            // 使用深蓝色迷雾，
             // Use deep blue fog with 0.7 alpha
             color: Color::Srgba(Srgba::new(0.1, 0.2, 0.4, 1.0)),
-            // 中等密度
-            // Medium density
-            density: 0.6,
-            // 迷雾范围
-            // Fog range
-            fog_range: 1.5,
-            // 最大强度
-            // Maximum intensity
-            max_intensity: 0.85,
-            // 相机周围的透明区域半径
-            // Clear radius around camera
-            clear_radius: 0.3,
-            // 边缘过渡效果宽度
-            // Edge falloff width
-            clear_falloff: 0.1,
         },
         MainCamera,
     ));
@@ -144,110 +129,46 @@ fn camera_movement(
 fn update_fog_settings(
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut fog_settings: Single<&mut FogSettings>,
+    mut fog_settings: Single<&mut FogMaterial>,
 ) {
     let delta = time.delta_secs();
     let mut changed = false;
-
-    // 调整迷雾密度
-    // Adjust fog density
-    if keyboard.pressed(KeyCode::KeyZ) {
-        fog_settings.density = (fog_settings.density - 0.1 * delta).max(0.1);
-        changed = true;
-    }
-    if keyboard.pressed(KeyCode::KeyX) {
-        fog_settings.density = (fog_settings.density + 0.1 * delta).min(1.0);
-        changed = true;
-    }
-
-    // 调整迷雾范围
-    // Adjust fog range
-    if keyboard.pressed(KeyCode::KeyC) {
-        fog_settings.fog_range = (fog_settings.fog_range - 0.2 * delta).max(0.5);
-        changed = true;
-    }
-    if keyboard.pressed(KeyCode::KeyV) {
-        fog_settings.fog_range = (fog_settings.fog_range + 0.2 * delta).min(3.0);
-        changed = true;
-    }
-
-    // 调整迷雾最大强度
-    // Adjust maximum fog intensity
-    if keyboard.pressed(KeyCode::KeyB) {
-        fog_settings.max_intensity = (fog_settings.max_intensity - 0.1 * delta).max(0.1);
-        changed = true;
-    }
-    if keyboard.pressed(KeyCode::KeyN) {
-        fog_settings.max_intensity = (fog_settings.max_intensity + 0.1 * delta).min(1.0);
-        changed = true;
-    }
 
     // 切换迷雾颜色
     // Toggle fog color
     if keyboard.just_pressed(KeyCode::Digit1) {
         // 蓝色迷雾 / Blue fog
-        fog_settings.color = Color::Srgba(Srgba::new(0.1, 0.2, 0.4, 0.7));
+        fog_settings.color = Color::Srgba(Srgba::new(0.1, 0.2, 0.4, 1.0));
         changed = true;
     }
     if keyboard.just_pressed(KeyCode::Digit2) {
         // 红色迷雾 / Red fog
-        fog_settings.color = Color::Srgba(Srgba::new(0.4, 0.1, 0.1, 0.7));
+        fog_settings.color = Color::Srgba(Srgba::new(0.4, 0.1, 0.1, 1.0));
         changed = true;
     }
     if keyboard.just_pressed(KeyCode::Digit3) {
         // 绿色迷雾 / Green fog
-        fog_settings.color = Color::Srgba(Srgba::new(0.1, 0.3, 0.1, 0.7));
+        fog_settings.color = Color::Srgba(Srgba::new(0.1, 0.3, 0.1, 1.0));
         changed = true;
     }
     if keyboard.just_pressed(KeyCode::Digit4) {
         // 紫色迷雾 / Purple fog
-        fog_settings.color = Color::Srgba(Srgba::new(0.3, 0.1, 0.3, 0.7));
+        fog_settings.color = Color::Srgba(Srgba::new(0.3, 0.1, 0.3, 1.0));
         changed = true;
     }
 
-    // 调整相机周围的透明区域半径
-    // Adjust clear radius around camera
-    if keyboard.pressed(KeyCode::Digit5) {
-        fog_settings.clear_radius = (fog_settings.clear_radius - 0.1 * delta).max(0.0);
-        changed = true;
-    }
-    if keyboard.pressed(KeyCode::Digit6) {
-        fog_settings.clear_radius = (fog_settings.clear_radius + 0.1 * delta).min(1.0);
-        changed = true;
-    }
 
-    // 调整边缘过渡效果宽度
-    // Adjust edge falloff width
-    if keyboard.pressed(KeyCode::Digit7) {
-        fog_settings.clear_falloff = (fog_settings.clear_falloff - 0.1 * delta).max(0.01);
-        changed = true;
-    }
-    if keyboard.pressed(KeyCode::Digit8) {
-        fog_settings.clear_falloff = (fog_settings.clear_falloff + 0.1 * delta).min(0.5);
-        changed = true;
-    }
 
     // 如果设置发生变化，显示当前设置
     // If settings changed, display current settings
     if changed {
         println!(
-            "迷雾设置 / Fog Settings: 颜色/Color: {:?}, 密度/Density: {:.2}, 范围/Range: {:.2}, 最大强度/Max: {:.2}, 透明半径/Clear: {:.2}, 过渡/Falloff: {:.2}",
+            "迷雾设置 / Fog Settings: 颜色/Color: {:?}",
             fog_settings.color,
-            fog_settings.density,
-            fog_settings.fog_range,
-            fog_settings.max_intensity,
-            fog_settings.clear_radius,
-            fog_settings.clear_falloff
+
         );
     }
-    if keyboard.pressed(KeyCode::KeyV) {
-        fog_settings.max_intensity =
-            (fog_settings.max_intensity + 0.1 * time.delta_secs()).min(1.0);
-        println!(
-            "迷雾最大强度 / Max fog intensity: {}",
-            fog_settings.max_intensity
-        );
-    }
+
 }
 
 /// 设置 UI 系统
@@ -340,7 +261,7 @@ fn update_fps_text(
 /// 更新迷雾设置文本系统
 /// Update fog settings text system
 fn update_fog_settings_text(
-    fog_settings: Single<&FogSettings>,
+    fog_settings: Single<&FogMaterial>,
     mut query: Query<&mut Text, With<FogSettingsText>>,
 ) {
     for mut text in &mut query {
@@ -357,13 +278,8 @@ fn update_fog_settings_text(
         // 更新设置文本
         // Update settings text
         **text = format!(
-            " Color: {}\n Density: {:.2}\n Range: {:.2}\n Max: {:.2}\n Clear: {:.2}\n Falloff: {:.2}",
+            " Color: {}\n ",
             color_text,
-            fog_settings.density,
-            fog_settings.fog_range,
-            fog_settings.max_intensity,
-            fog_settings.clear_radius,
-            fog_settings.clear_falloff
         );
     }
 }
