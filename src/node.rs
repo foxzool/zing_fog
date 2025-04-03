@@ -1,9 +1,9 @@
 use crate::fog::{FogOfWarMeta, FogMaterial, GpuFogMaterial, ViewFogOfWarUniformOffset};
 use bevy::{
-    asset::AssetServer,
+    asset::{AssetServer, Handle},
     core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state,
     ecs::{query::QueryItem, system::lifetimeless::Read},
-    prelude::{Commands, Component, Entity, FromWorld, Res, Resource, Shader, With, World},
+    prelude::{Commands, Component, Entity, FromWorld, Image, Res, Resource, Shader, With, World},
     render::{
         render_graph::{NodeRunError, RenderGraphContext, RenderLabel, ViewNode},
         render_resource::{
@@ -25,6 +25,8 @@ use bevy::{
     },
     utils::default,
 };
+use bevy::render::render_asset::RenderAssets;
+use bevy::render::texture::GpuImage;
 use crate::FOG_2D_SHADER_HANDLE;
 
 /// 迷雾节点名称
@@ -36,18 +38,15 @@ pub struct FogNode2dLabel;
 pub struct FogOfWar2dPipeline {
     pub bind_group_layout: BindGroupLayout,
     pub pipeline_id: CachedRenderPipelineId,
+    pub noise_texture: Option<Handle<Image>>,
 }
 
 impl FromWorld for FogOfWar2dPipeline {
     fn from_world(world: &mut World) -> Self {
-        // let chunks = world
-        //     .query::<&ChunkRingBuffer>()
-        //     .iter(&world)
-        //     .collect::<Vec<_>>();
-        // let views_chunk_count = chunks.iter().map(|c| c.visible()).filter(|b| *b).count() as u32;
-        //
-        // let settings = world.resource::<FogSettings>();
-        // // let chunk_size = settings.chunk_size;
+        // 加载噪声纹理
+        // Load noise texture
+        let asset_server = world.resource::<AssetServer>();
+        let noise_texture = asset_server.load("textures/noise.png");
 
 
         let render_device = world.resource_mut::<RenderDevice>();
@@ -75,6 +74,8 @@ impl FromWorld for FogOfWar2dPipeline {
             ..TextureViewDescriptor::default()
         });
 
+ 
+        
         let bind_group_layout = render_device.create_bind_group_layout(
             "fog_of_war_layout",
             &BindGroupLayoutEntries::sequential(
@@ -82,12 +83,26 @@ impl FromWorld for FogOfWar2dPipeline {
                 (
                     // uniform_buffer::<ViewUniform>(true),
                     uniform_buffer::<GpuFogMaterial>(true),
-                    // storage_buffer_read_only_sized(false, None),
-                    // texture_storage_2d_array(
-                    //     TextureFormat::R8Unorm,
-                    //     StorageTextureAccess::ReadWrite,
-                    // ),
-                    // storage_buffer_read_only_sized(false, None),
+                    // 添加噪声纹理绑定
+                    // Add noise texture binding
+                    BindGroupLayoutEntry {
+                        ty: BindingType::Texture {
+                            sample_type: bevy::render::render_resource::TextureSampleType::Float { filterable: true },
+                            view_dimension: bevy::render::render_resource::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                        binding: 1,
+                        visibility: ShaderStages::FRAGMENT,
+                    },
+                    // 添加采样器绑定
+                    // Add sampler binding
+                    BindGroupLayoutEntry {
+                        ty: BindingType::Sampler(bevy::render::render_resource::SamplerBindingType::Filtering),
+                        count: None,
+                        binding: 2,
+                        visibility: ShaderStages::FRAGMENT,
+                    },
                 ),
             ),
         );
@@ -143,6 +158,7 @@ impl FromWorld for FogOfWar2dPipeline {
         Self {
             bind_group_layout,
             pipeline_id,
+            noise_texture: Some(noise_texture),
             // explored_texture: Some(explored_texture),
             // texture: Some(texture),
         }
@@ -185,12 +201,32 @@ impl ViewNode for FogNode2d {
 
         let view = view_target.main_texture_view();
 
+        // 获取噪声纹理和采样器
+        // Get noise texture and sampler
+        let gpu_images = world.resource::<RenderAssets<GpuImage>>();
+        let noise_texture_id = fog_of_war_pipeline.noise_texture.as_ref().unwrap();  
+        let fallback_image = world.resource::<bevy::render::texture::FallbackImage>();
+        
+        // 获取噪声纹理或使用回退图像
+        // Get noise texture or use fallback image
+        let noise_texture_view = if let Some(gpu_image) = gpu_images.get(noise_texture_id) {
+            &gpu_image.texture_view
+        } else {
+            &fallback_image.d2.texture_view
+        };
+        
+        let sampler = &world.resource::<bevy::render::texture::FallbackImage>().d2.sampler;
+        
         let bind_group = render_context.render_device().create_bind_group(
             None,
             &fog_of_war_pipeline.bind_group_layout,
             &BindGroupEntries::sequential((
                 // view_uniforms_binding,
                 settings_binding.clone(),
+                // 添加噪声纹理和采样器绑定
+                // Add noise texture and sampler bindings
+                BindingResource::TextureView(noise_texture_view),
+                BindingResource::Sampler(sampler),
                 // fog_sight_buffers.buffers.into_binding(),
                 // fog_of_war_pipeline.explored_texture.as_ref().unwrap(),
                 // ring_buffers.buffers.into_binding(),

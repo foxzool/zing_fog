@@ -52,12 +52,16 @@ pub struct FogMaterial {
     /// 迷雾颜色
     /// Fog color
     pub color: Color,
+    /// 噪声纹理
+    /// Noise texture
+    pub noise_texture: Option<Handle<Image>>,
 }
 
 impl Default for FogMaterial {
     fn default() -> Self {
         Self {
             color: Color::srgba(0.0, 0.0, 0.0, 1.0), // 黑色迷雾 / Black fog
+            noise_texture: None,
         }
     }
 }
@@ -67,6 +71,7 @@ impl Default for FogMaterial {
 #[derive(ShaderType, Clone, Copy, Debug)]
 pub struct GpuFogMaterial {
     color: LinearRgba,
+    use_noise: u32, // 是否使用噪声纹理 / Whether to use noise texture
 }
 
 #[derive(Default, Resource)]
@@ -94,6 +99,7 @@ pub fn prepare_fog_settings(
 
         let settings = GpuFogMaterial {
             color: fog_settings.color.to_linear(),
+            use_noise: if fog_settings.noise_texture.is_some() { 1 } else { 0 },
         };
 
         commands.entity(entity).insert(ViewFogOfWarUniformOffset {

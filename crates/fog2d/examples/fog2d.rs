@@ -56,7 +56,11 @@ struct FogSettingsText;
 #[derive(Component)]
 struct ColorAnimatedText;
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    // 加载噪声纹理
+    // Load noise texture
+    let noise_texture = asset_server.load("textures/noise.png");
+    
     // 生成相机
     // Spawn camera
     commands.spawn((
@@ -65,6 +69,9 @@ fn setup(mut commands: Commands) {
             // 使用深蓝色迷雾，
             // Use deep blue fog with 0.7 alpha
             color: Color::Srgba(Srgba::new(0.1, 0.2, 0.4, 1.0)),
+            // 使用噪声纹理
+            // Use noise texture
+            noise_texture: Some(noise_texture),
         },
         MainCamera,
     ));
@@ -129,6 +136,7 @@ fn camera_movement(
 fn update_fog_settings(
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
+    asset_server: Res<AssetServer>,
     mut fog_settings: Single<&mut FogMaterial>,
 ) {
     let delta = time.delta_secs();
@@ -139,6 +147,19 @@ fn update_fog_settings(
     if keyboard.just_pressed(KeyCode::Digit1) {
         // 蓝色迷雾 / Blue fog
         fog_settings.color = Color::Srgba(Srgba::new(0.1, 0.2, 0.4, 1.0));
+        changed = true;
+    }
+    
+    // 切换噪声纹理
+    // Toggle noise texture
+    if keyboard.just_pressed(KeyCode::KeyN) {
+        if fog_settings.noise_texture.is_some() {
+            // 关闭噪声纹理 / Disable noise texture
+            fog_settings.noise_texture = None;
+        } else {
+            // 启用噪声纹理 / Enable noise texture
+            fog_settings.noise_texture = Some(asset_server.load("textures/noise.png"));
+        }
         changed = true;
     }
     if keyboard.just_pressed(KeyCode::Digit2) {
@@ -163,9 +184,9 @@ fn update_fog_settings(
     // If settings changed, display current settings
     if changed {
         println!(
-            "迷雾设置 / Fog Settings: 颜色/Color: {:?}",
+            "迷雾设置 / Fog Settings: 颜色/Color: {:?}, 噪声纹理/Noise Texture: {}",
             fog_settings.color,
-
+            if fog_settings.noise_texture.is_some() { "启用/Enabled" } else { "禁用/Disabled" }
         );
     }
 
@@ -274,12 +295,21 @@ fn update_fog_settings_text(
             fog_settings.color.to_linear().blue,
             fog_settings.color.to_linear().alpha
         );
+        
+        // 噪声纹理状态
+        // Noise texture status
+        let noise_text = if fog_settings.noise_texture.is_some() {
+            "启用/Enabled"
+        } else {
+            "禁用/Disabled"
+        };
 
         // 更新设置文本
         // Update settings text
         **text = format!(
-            " Color: {}\n ",
+            " Color: {}\n Noise Texture: {}\n 按N键切换噪声纹理/Press N to toggle noise\n ",
             color_text,
+            noise_text
         );
     }
 }
