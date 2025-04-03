@@ -1,28 +1,24 @@
 use crate::{
     chunk::ChunkManager,
-    fog::{FogOfWarConfig, FogOfWarMeta, FogSettings},
-    node::{FogNode2d, FogNode2dLabel},
+    fog::{FogOfWarConfig, FogOfWarMeta, FogSettings, prepare_fog_settings},
+    node::{FogNode2d, FogNode2dLabel, FogOfWar2dPipeline, prepare_bind_groups},
 };
 use bevy::{
     app::{App, Plugin},
     core_pipeline::core_2d::graph::{Core2d, Node2d},
-    prelude::Shader,
+    prelude::{IntoSystemConfigs, Shader},
     render::{
         Render, RenderApp, RenderSet,
+        extract_component::ExtractComponentPlugin,
         extract_resource::ExtractResourcePlugin,
         render_graph::{RenderGraphApp, ViewNodeRunner},
     },
 };
-use bevy::prelude::IntoSystemConfigs;
-use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy_asset::{Handle, load_internal_asset};
-use crate::fog::prepare_fog_settings;
-use crate::node::{prepare_bind_groups, FogOfWar2dPipeline};
 // use crate::node::prepare_fog_settings;
 
 pub mod prelude;
 
-mod chunk;
 mod fog;
 
 mod node;
@@ -37,9 +33,7 @@ impl Plugin for ZingFogPlugins {
         #[cfg(feature = "2d")]
         load_internal_asset!(app, FOG_2D_SHADER_HANDLE, "fog2d.wgsl", Shader::from_wgsl);
 
-        app.init_resource::<FogOfWarConfig>()
-            .init_resource::<ChunkManager>();
-
+        app.init_resource::<FogOfWarConfig>();
 
         app.register_type::<FogSettings>()
             .add_plugins(ExtractComponentPlugin::<FogSettings>::default());
@@ -52,7 +46,10 @@ impl Plugin for ZingFogPlugins {
         // Place fog node between MainTransparentPass and EndMainPass
         render_app
             .init_resource::<FogOfWarMeta>()
-            .add_systems(Render, prepare_fog_settings.in_set(RenderSet::PrepareResources))
+            .add_systems(
+                Render,
+                prepare_fog_settings.in_set(RenderSet::PrepareResources),
+            )
             .add_systems(Render, prepare_bind_groups.in_set(RenderSet::Prepare))
             .add_render_graph_node::<ViewNodeRunner<FogNode2d>>(Core2d, FogNode2dLabel)
             .add_render_graph_edges(
@@ -62,8 +59,7 @@ impl Plugin for ZingFogPlugins {
                     FogNode2dLabel,
                     Node2d::EndMainPass,
                 ),
-            )
-        ;
+            );
     }
 
     fn finish(&self, app: &mut App) {

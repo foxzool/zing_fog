@@ -64,7 +64,7 @@ fn setup(mut commands: Commands) {
         FogSettings {
             // 使用深蓝色迷雾，透明度设置为 0.7
             // Use deep blue fog with 0.7 alpha
-            color: Color::Srgba(Srgba::new(0.1, 0.2, 0.4, 0.7)),
+            color: Color::Srgba(Srgba::new(0.1, 0.2, 0.4, 1.0)),
             // 中等密度
             // Medium density
             density: 0.6,
