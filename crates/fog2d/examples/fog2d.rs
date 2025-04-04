@@ -224,9 +224,9 @@ fn update_fog_settings(
     // If settings changed, display current settings
     if changed {
         println!(
-            "迷雾设置 / Fog Settings: 颜色/Color: {:?}, 噪声纹理/Noise Texture: {}, 强度/Intensity: {:.2}, 缩放/Scale: {:.2}, 速度/Speed: {:.2}",
+            "Fog Settings: Color: {:?}, Noise Texture: {}, Intensity: {:.2}, Scale: {:.2}, Speed: {:.2}",
             fog_settings.color,
-            if fog_settings.noise_texture.is_some() { "启用/Enabled" } else { "禁用/Disabled" },
+            if fog_settings.noise_texture.is_some() { "Enabled" } else { "Disabled" },
             fog_settings.noise_intensity,
             fog_settings.noise_scale,
             fog_settings.noise_speed
@@ -342,15 +342,15 @@ fn update_fog_settings_text(
         // 噪声纹理状态
         // Noise texture status
         let noise_text = if fog_settings.noise_texture.is_some() {
-            "启用/Enabled"
+            "Enabled"
         } else {
-            "禁用/Disabled"
+            "Disabled"
         };
 
         // 更新设置文本
         // Update settings text
         **text = format!(
-            " Color: {}\n Noise Texture: {}\n Intensity: {:.2} (Q/E)\n Scale: {:.2} (Z/X)\n Speed: {:.2} (C/V)\n 按N键切换噪声纹理/Press N to toggle noise\n ",
+            " Color: {}\n Noise Texture: {}\n Intensity: {:.2} (Q/E)\n Scale: {:.2} (Z/X)\n Speed: {:.2} (C/V)\n Press N to toggle noise\n ",
             color_text,
             noise_text,
             fog_settings.noise_intensity,
