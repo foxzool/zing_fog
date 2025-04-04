@@ -72,6 +72,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             // 使用噪声纹理
             // Use noise texture
             noise_texture: Some(noise_texture),
+            // 噪声强度默认为1.0
+            // Default noise intensity is 1.0
+            noise_intensity: 1.0,
+            // 噪声缩放默认为1.0
+            // Default noise scale is 1.0
+            noise_scale: 1.0,
+            // 噪声速度默认为0.0（静态）
+            // Default noise speed is 0.0 (static)
+            noise_speed: 0.0,
         },
         MainCamera,
     ));
@@ -178,15 +187,49 @@ fn update_fog_settings(
         changed = true;
     }
 
+    // 噪声强度控制 (Q/E 键)
+    // Noise intensity control (Q/E keys)
+    if keyboard.pressed(KeyCode::KeyQ) {
+        fog_settings.noise_intensity = (fog_settings.noise_intensity - delta).max(0.0);
+        changed = true;
+    }
+    if keyboard.pressed(KeyCode::KeyE) {
+        fog_settings.noise_intensity = (fog_settings.noise_intensity + delta).min(2.0);
+        changed = true;
+    }
 
+    // 噪声缩放控制 (Z/X 键)
+    // Noise scale control (Z/X keys)
+    if keyboard.pressed(KeyCode::KeyZ) {
+        fog_settings.noise_scale = (fog_settings.noise_scale - delta).max(0.1);
+        changed = true;
+    }
+    if keyboard.pressed(KeyCode::KeyX) {
+        fog_settings.noise_scale = (fog_settings.noise_scale + delta).min(5.0);
+        changed = true;
+    }
+
+    // 噪声速度控制 (C/V 键)
+    // Noise speed control (C/V keys)
+    if keyboard.pressed(KeyCode::KeyC) {
+        fog_settings.noise_speed = (fog_settings.noise_speed - delta).max(0.0);
+        changed = true;
+    }
+    if keyboard.pressed(KeyCode::KeyV) {
+        fog_settings.noise_speed = (fog_settings.noise_speed + delta * 2.0).min(10.0);
+        changed = true;
+    }
 
     // 如果设置发生变化，显示当前设置
     // If settings changed, display current settings
     if changed {
         println!(
-            "迷雾设置 / Fog Settings: 颜色/Color: {:?}, 噪声纹理/Noise Texture: {}",
+            "迷雾设置 / Fog Settings: 颜色/Color: {:?}, 噪声纹理/Noise Texture: {}, 强度/Intensity: {:.2}, 缩放/Scale: {:.2}, 速度/Speed: {:.2}",
             fog_settings.color,
-            if fog_settings.noise_texture.is_some() { "启用/Enabled" } else { "禁用/Disabled" }
+            if fog_settings.noise_texture.is_some() { "启用/Enabled" } else { "禁用/Disabled" },
+            fog_settings.noise_intensity,
+            fog_settings.noise_scale,
+            fog_settings.noise_speed
         );
     }
 
@@ -307,9 +350,12 @@ fn update_fog_settings_text(
         // 更新设置文本
         // Update settings text
         **text = format!(
-            " Color: {}\n Noise Texture: {}\n 按N键切换噪声纹理/Press N to toggle noise\n ",
+            " Color: {}\n Noise Texture: {}\n Intensity: {:.2} (Q/E)\n Scale: {:.2} (Z/X)\n Speed: {:.2} (C/V)\n 按N键切换噪声纹理/Press N to toggle noise\n ",
             color_text,
-            noise_text
+            noise_text,
+            fog_settings.noise_intensity,
+            fog_settings.noise_scale,
+            fog_settings.noise_speed
         );
     }
 }
