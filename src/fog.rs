@@ -1,3 +1,6 @@
+use bevy::color::ColorToComponents;
+use bevy::image::Image;
+use bevy::render::render_resource::AsBindGroup;
 use bevy::{
     app::{App, Plugin},
     color::{Color, LinearRgba},
@@ -15,9 +18,6 @@ use bevy::{
         view::ExtractedView,
     },
 };
-use bevy::color::ColorToComponents;
-use bevy::image::Image;
-use bevy::render::render_resource::AsBindGroup;
 use bevy_asset::Handle;
 
 /// 迷雾战争插件配置
@@ -83,11 +83,11 @@ impl Default for FogMaterial {
 #[derive(ShaderType, Clone, Copy, Debug)]
 pub struct GpuFogMaterial {
     color: LinearRgba,
-    use_noise: u32, // 是否使用噪声纹理 / Whether to use noise texture
+    use_noise: u32,       // 是否使用噪声纹理 / Whether to use noise texture
     noise_intensity: f32, // 噪声强度 / Noise intensity
-    noise_scale: f32, // 噪声缩放 / Noise scale
-    noise_speed: f32, // 噪声速度 / Noise speed
-    time: f32, // 当前时间 / Current time (for animated noise)
+    noise_scale: f32,     // 噪声缩放 / Noise scale
+    noise_speed: f32,     // 噪声速度 / Noise speed
+    time: f32,            // 当前时间 / Current time (for animated noise)
 }
 
 #[derive(Default, Resource)]
@@ -105,18 +105,21 @@ pub fn prepare_fog_settings(
 ) {
     let views_iter = views.iter();
     let view_count = views_iter.len();
-    let Some(mut writer) = fog_meta
-        .gpu_fog_settings
-        .get_writer(view_count, &render_device, &render_queue)
+    let Some(mut writer) =
+        fog_meta
+            .gpu_fog_settings
+            .get_writer(view_count, &render_device, &render_queue)
     else {
         return;
     };
-    for (entity, transform, fog_settings) in views_iter {
-
-
+    for (entity, _transform, fog_settings) in views_iter {
         let settings = GpuFogMaterial {
             color: fog_settings.color.to_linear(),
-            use_noise: if fog_settings.noise_texture.is_some() { 1 } else { 0 },
+            use_noise: if fog_settings.noise_texture.is_some() {
+                1
+            } else {
+                0
+            },
             noise_intensity: fog_settings.noise_intensity,
             noise_scale: fog_settings.noise_scale,
             noise_speed: fog_settings.noise_speed,
@@ -127,9 +130,7 @@ pub fn prepare_fog_settings(
             offset: writer.write(&settings),
         });
     }
-
 }
-
 
 #[derive(Component)]
 pub struct ViewFogOfWarUniformOffset {

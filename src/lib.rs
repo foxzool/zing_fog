@@ -1,5 +1,5 @@
 use crate::{
-    fog::{FogOfWarConfig, FogOfWarMeta, FogMaterial, prepare_fog_settings},
+    fog::{FogMaterial, FogOfWarConfig, FogOfWarMeta, prepare_fog_settings},
     node::{FogNode2d, FogNode2dLabel, FogOfWar2dPipeline, prepare_bind_groups},
 };
 use bevy::{
@@ -14,7 +14,6 @@ use bevy::{
     },
 };
 use bevy_asset::{Handle, load_internal_asset};
-// use crate::node::prepare_fog_settings;
 
 pub mod prelude;
 

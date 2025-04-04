@@ -60,7 +60,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // 加载噪声纹理
     // Load noise texture
     let noise_texture = asset_server.load("textures/noise.png");
-    
+
     // 生成相机
     // Spawn camera
     commands.spawn((
@@ -158,7 +158,7 @@ fn update_fog_settings(
         fog_settings.color = Color::Srgba(Srgba::new(0.1, 0.2, 0.4, 1.0));
         changed = true;
     }
-    
+
     // 切换噪声纹理
     // Toggle noise texture
     if keyboard.just_pressed(KeyCode::KeyN) {
@@ -226,13 +226,16 @@ fn update_fog_settings(
         println!(
             "Fog Settings: Color: {:?}, Noise Texture: {}, Intensity: {:.2}, Scale: {:.2}, Speed: {:.2}",
             fog_settings.color,
-            if fog_settings.noise_texture.is_some() { "Enabled" } else { "Disabled" },
+            if fog_settings.noise_texture.is_some() {
+                "Enabled"
+            } else {
+                "Disabled"
+            },
             fog_settings.noise_intensity,
             fog_settings.noise_scale,
             fog_settings.noise_speed
         );
     }
-
 }
 
 /// 设置 UI 系统
@@ -338,7 +341,7 @@ fn update_fog_settings_text(
             fog_settings.color.to_linear().blue,
             fog_settings.color.to_linear().alpha
         );
-        
+
         // 噪声纹理状态
         // Noise texture status
         let noise_text = if fog_settings.noise_texture.is_some() {

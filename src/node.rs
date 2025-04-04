@@ -1,33 +1,28 @@
-use crate::fog::{FogOfWarMeta, FogMaterial, GpuFogMaterial, ViewFogOfWarUniformOffset};
+use crate::FOG_2D_SHADER_HANDLE;
+use crate::fog::{FogOfWarMeta, GpuFogMaterial, ViewFogOfWarUniformOffset};
 use bevy::{
     asset::{AssetServer, Handle},
     core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state,
     ecs::{query::QueryItem, system::lifetimeless::Read},
-    prelude::{Commands, Component, Entity, FromWorld, Image, Res, Resource, Shader, With, World},
+    prelude::{Commands, FromWorld, Image, Resource, World},
     render::{
+        render_asset::RenderAssets,
         render_graph::{NodeRunError, RenderGraphContext, RenderLabel, ViewNode},
         render_resource::{
-            BindGroupEntries, BindGroupEntry, BindGroupLayout, BindGroupLayoutEntries,
-            BindGroupLayoutEntry, BindingResource, BindingType, BlendComponent, BlendFactor,
-            BlendOperation, BlendState, BufferBinding, BufferBindingType, BufferInitDescriptor,
-            BufferSize, BufferUsages, CachedRenderPipelineId, ColorTargetState, ColorWrites,
-            Extent3d, FragmentState, FrontFace, IndexFormat, LoadOp, MultisampleState, Operations,
-            PipelineCache, PolygonMode, PrimitiveState, PrimitiveTopology,
-            RenderPassColorAttachment, RenderPassDescriptor, RenderPipelineDescriptor,
-            ShaderStages, StorageTextureAccess, StoreOp, TextureDescriptor, TextureDimension,
-            TextureFormat, TextureUsages, TextureViewDescriptor, VertexState,
-            binding_types::{
-                storage_buffer_read_only_sized, texture_storage_2d_array, uniform_buffer,
-            },
+            BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, BindGroupLayoutEntry,
+            BindingResource, BindingType, BlendComponent, BlendState, CachedRenderPipelineId,
+            ColorTargetState, ColorWrites, Extent3d, FragmentState, FrontFace, LoadOp,
+            MultisampleState, Operations, PipelineCache, PolygonMode, PrimitiveState,
+            PrimitiveTopology, RenderPassColorAttachment, RenderPassDescriptor,
+            RenderPipelineDescriptor, ShaderStages, StoreOp, TextureDescriptor, TextureDimension,
+            TextureFormat, TextureUsages, binding_types::uniform_buffer,
         },
-        renderer::{RenderContext, RenderDevice, RenderQueue},
-        view::{ExtractedView, ViewTarget, ViewUniform, ViewUniforms},
+        renderer::{RenderContext, RenderDevice},
+        texture::GpuImage,
+        view::{ViewTarget, ViewUniforms},
     },
     utils::default,
 };
-use bevy::render::render_asset::RenderAssets;
-use bevy::render::texture::GpuImage;
-use crate::FOG_2D_SHADER_HANDLE;
 
 /// 迷雾节点名称
 /// Fog node name
@@ -47,7 +42,6 @@ impl FromWorld for FogOfWar2dPipeline {
         // Load noise texture
         let asset_server = world.resource::<AssetServer>();
         let noise_texture = asset_server.load("textures/noise.png");
-
 
         let render_device = world.resource_mut::<RenderDevice>();
 
@@ -69,13 +63,6 @@ impl FromWorld for FogOfWar2dPipeline {
             view_formats: &[],
         });
 
-        let explored_texture = texture.create_view(&TextureViewDescriptor {
-            dimension: Some(bevy::render::render_resource::TextureViewDimension::D2Array),
-            ..TextureViewDescriptor::default()
-        });
-
- 
-        
         let bind_group_layout = render_device.create_bind_group_layout(
             "fog_of_war_layout",
             &BindGroupLayoutEntries::sequential(
@@ -87,7 +74,9 @@ impl FromWorld for FogOfWar2dPipeline {
                     // Add noise texture binding
                     BindGroupLayoutEntry {
                         ty: BindingType::Texture {
-                            sample_type: bevy::render::render_resource::TextureSampleType::Float { filterable: true },
+                            sample_type: bevy::render::render_resource::TextureSampleType::Float {
+                                filterable: true,
+                            },
                             view_dimension: bevy::render::render_resource::TextureViewDimension::D2,
                             multisampled: false,
                         },
@@ -98,7 +87,9 @@ impl FromWorld for FogOfWar2dPipeline {
                     // 添加采样器绑定
                     // Add sampler binding
                     BindGroupLayoutEntry {
-                        ty: BindingType::Sampler(bevy::render::render_resource::SamplerBindingType::Filtering),
+                        ty: BindingType::Sampler(
+                            bevy::render::render_resource::SamplerBindingType::Filtering,
+                        ),
                         count: None,
                         binding: 2,
                         visibility: ShaderStages::FRAGMENT,
@@ -169,16 +160,13 @@ impl FromWorld for FogOfWar2dPipeline {
 pub struct FogNode2d;
 
 impl ViewNode for FogNode2d {
-    type ViewQuery = (
-        Read<ViewTarget>,
-        Read<ViewFogOfWarUniformOffset>,
-    );
+    type ViewQuery = (Read<ViewTarget>, Read<ViewFogOfWarUniformOffset>);
 
     fn run(
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (view_target,  view_fog_offset): QueryItem<Self::ViewQuery>,
+        (view_target, view_fog_offset): QueryItem<Self::ViewQuery>,
         world: &World,
     ) -> Result<(), NodeRunError> {
         let pipeline_cache = world.resource::<PipelineCache>();
@@ -204,9 +192,9 @@ impl ViewNode for FogNode2d {
         // 获取噪声纹理和采样器
         // Get noise texture and sampler
         let gpu_images = world.resource::<RenderAssets<GpuImage>>();
-        let noise_texture_id = fog_of_war_pipeline.noise_texture.as_ref().unwrap();  
+        let noise_texture_id = fog_of_war_pipeline.noise_texture.as_ref().unwrap();
         let fallback_image = world.resource::<bevy::render::texture::FallbackImage>();
-        
+
         // 获取噪声纹理或使用回退图像
         // Get noise texture or use fallback image
         let noise_texture_view = if let Some(gpu_image) = gpu_images.get(noise_texture_id) {
@@ -214,9 +202,12 @@ impl ViewNode for FogNode2d {
         } else {
             &fallback_image.d2.texture_view
         };
-        
-        let sampler = &world.resource::<bevy::render::texture::FallbackImage>().d2.sampler;
-        
+
+        let sampler = &world
+            .resource::<bevy::render::texture::FallbackImage>()
+            .d2
+            .sampler;
+
         let bind_group = render_context.render_device().create_bind_group(
             None,
             &fog_of_war_pipeline.bind_group_layout,
