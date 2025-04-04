@@ -1,6 +1,7 @@
 use crate::{
     fog::{FogMaterial, FogOfWarConfig, FogOfWarMeta, prepare_fog_settings},
     node::{FogNode2d, FogNode2dLabel, FogOfWar2dPipeline, prepare_bind_groups},
+    chunk::FogChunkPlugin,
 };
 use bevy::{
     app::{App, Plugin},
@@ -21,6 +22,8 @@ mod fog;
 
 mod node;
 
+mod chunk;
+
 #[cfg(feature = "2d")]
 pub const FOG_2D_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(2645352199453808407);
 
@@ -34,7 +37,8 @@ impl Plugin for ZingFogPlugins {
         app.init_resource::<FogOfWarConfig>();
 
         app.register_type::<FogMaterial>()
-            .add_plugins(ExtractComponentPlugin::<FogMaterial>::default());
+            .add_plugins(ExtractComponentPlugin::<FogMaterial>::default())
+            .add_plugins(FogChunkPlugin);
 
         let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
             return;
