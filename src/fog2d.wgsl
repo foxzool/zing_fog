@@ -24,33 +24,13 @@ var noise_sampler: sampler;
 
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
-    // 常量设置
-    // Constants setting
-    let inner_radius = 0.2;  // 内圈（完全透明区域）
-    let outer_radius = 0.3;  // 外圈（开始迷雾区域）
-    
     // 初始化迷雾颜色
     // Initialize fog color
     var fog_color = fog_material.color;
     
-    // 计算到屏幕中心的距离
-    // Calculate distance to screen center
-    let center = vec2<f32>(0.5, 0.5);
-    let dist = distance(in.uv, center);
-    
-    // 逐渐过渡透明度计算
-    // Gradual transparency transition calculation
-    var alpha = 1.0;
-    
-    if (dist < inner_radius) {
-        // 在内圈内部 - 完全透明
-        // Inside inner circle - completely transparent
-        alpha = 0.0;
-    } else if (dist < outer_radius) {
-        // 在过渡区域 - 平滑过渡
-        // In transition area - smooth transition
-        alpha = smoothstep(inner_radius, outer_radius, dist);
-    }
+    // 设置固定透明度（不再基于屏幕中心距离）
+    // Set fixed transparency (no longer based on distance to screen center)
+    var alpha = 1.0;  // 完全不透明 / fully opaque
     
     // 如果启用了噪声纹理，则使用它来修改迷雾效果
     // If noise texture is enabled, use it to modify the fog effect
