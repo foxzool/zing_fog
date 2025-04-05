@@ -8,9 +8,7 @@ struct FogMaterial {
     noise_intensity: f32,  // 噪声强度 / noise intensity
     noise_scale: f32,      // 噪声缩放 / noise scale
     noise_speed: f32,      // 噪声速度 / noise speed
-    time: f32,            // 当前时间 / current time
-    vision_range: f32,     // 视野范围 / vision range
-    vision_falloff: f32,   // 视野衰减系数 / vision falloff coefficient
+    time: f32             // 当前时间 / current time
 };
 
 @group(0) @binding(0)
