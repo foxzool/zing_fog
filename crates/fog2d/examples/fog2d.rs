@@ -85,20 +85,28 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         MainCamera,
     ));
 
-    // 生成一个红色方块来测试基本渲染功能
-    // Spawn a red square to test basic rendering functionality
-    commands.spawn(Sprite {
-        color: RED.into(),
-        custom_size: Some(Vec2::new(100.0, 100.0)),
-        ..default()
-    });
+    // 生成一个红色方块来测试基本渲染功能，并添加视野提供者组件
+    // Spawn a red square to test basic rendering functionality and add vision provider component
+    commands.spawn((
+        Sprite {
+            color: RED.into(),
+            custom_size: Some(Vec2::new(100.0, 100.0)),
+            ..default()
+        },
+        VisionProvider {
+            range: 100.0, // 视野范围 / Vision range
+        },
+    ));
 
-    // 颜色渐变条作为参考
-    // Color gradient bar as reference
+    // 颜色渐变条作为参考，并添加视野提供者组件到部分方块
+    // Color gradient bar as reference, and add vision provider to some blocks
     for i in 0..10 {
         let position = Vec3::new(-500.0 + i as f32 * 100.0, 200.0, 0.0);
         let color = Color::hsl(i as f32 * 36.0, 0.8, 0.5);
-        commands.spawn((
+        
+        // 只给偶数索引的方块添加视野提供者组件
+        // Only add vision provider to blocks with even indices
+        let mut entity_commands = commands.spawn((
             Sprite {
                 color,
                 custom_size: Some(Vec2::new(80.0, 80.0)),
@@ -106,6 +114,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             Transform::from_translation(position),
         ));
+        
+        // 为偶数索引的方块添加视野提供者
+        // Add vision provider to blocks with even indices
+        if i % 2 == 0 {
+            entity_commands.insert(VisionProvider {
+                range: 300.0 + (i as f32 * 20.0), // 不同范围的视野 / Different vision ranges
+            });
+        }
     }
 }
 
@@ -329,6 +345,7 @@ fn update_fps_text(
 /// Update fog settings text system
 fn update_fog_settings_text(
     fog_settings: Single<&FogMaterial>,
+    vision_providers: Query<&VisionProvider>,
     mut query: Query<&mut Text, With<FogSettingsText>>,
 ) {
     for mut text in &mut query {
@@ -350,15 +367,26 @@ fn update_fog_settings_text(
             "Disabled"
         };
 
+        // 计算视野提供者数量和平均视野范围
+        // Calculate vision provider count and average vision range
+        let vision_count = vision_providers.iter().count();
+        let avg_vision_range = if vision_count > 0 {
+            vision_providers.iter().map(|v| v.range).sum::<f32>() / vision_count as f32
+        } else {
+            0.0
+        };
+        
         // 更新设置文本
         // Update settings text
         **text = format!(
-            " Color: {}\n Noise Texture: {}\n Intensity: {:.2} (Q/E)\n Scale: {:.2} (Z/X)\n Speed: {:.2} (C/V)\n Press N to toggle noise\n ",
+            " Color: {}\n Noise Texture: {}\n Intensity: {:.2} (Q/E)\n Scale: {:.2} (Z/X)\n Speed: {:.2} (C/V)\n Vision Providers: {}\n Avg Vision Range: {:.2}\n Press N to toggle noise\n ",
             color_text,
             noise_text,
             fog_settings.noise_intensity,
             fog_settings.noise_scale,
-            fog_settings.noise_speed
+            fog_settings.noise_speed,
+            vision_count,
+            avg_vision_range
         );
     }
 }

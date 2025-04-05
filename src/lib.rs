@@ -37,6 +37,7 @@ impl Plugin for ZingFogPlugins {
         app.init_resource::<FogOfWarConfig>();
 
         app.register_type::<FogMaterial>()
+            .register_type::<chunk::VisionProvider>() // 注册VisionProvider类型
             .add_plugins(ExtractComponentPlugin::<FogMaterial>::default())
             .add_plugins(FogChunkPlugin);
 

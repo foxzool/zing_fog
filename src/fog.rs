@@ -1,3 +1,4 @@
+use crate::chunk::VisionProvider;
 use bevy::color::ColorToComponents;
 use bevy::image::Image;
 use bevy::render::render_resource::AsBindGroup;
@@ -88,6 +89,8 @@ pub struct GpuFogMaterial {
     noise_scale: f32,     // 噪声缩放 / Noise scale
     noise_speed: f32,     // 噪声速度 / Noise speed
     time: f32,            // 当前时间 / Current time (for animated noise)
+    vision_range: f32,    // 视野范围 / Vision range
+    vision_falloff: f32,  // 视野衰减系数 / Vision falloff coefficient
 }
 
 #[derive(Default, Resource)]
@@ -101,6 +104,7 @@ pub fn prepare_fog_settings(
     render_queue: Res<RenderQueue>,
     mut fog_meta: ResMut<FogOfWarMeta>,
     views: Query<(Entity, &GlobalTransform, &FogMaterial), With<ExtractedView>>,
+    vision_providers: Query<(&GlobalTransform, &VisionProvider)>,
     time: Res<Time>,
 ) {
     let views_iter = views.iter();
@@ -113,6 +117,32 @@ pub fn prepare_fog_settings(
         return;
     };
     for (entity, _transform, fog_settings) in views_iter {
+        // 计算所有视野提供者的平均视野范围
+        // Calculate average vision range of all vision providers
+        let vision_count = vision_providers.iter().count();
+        let avg_vision_range = if vision_count > 0 {
+            // 如果有视野提供者，计算平均视野范围
+            // If there are vision providers, calculate average vision range
+            let total_range: f32 = vision_providers.iter().map(|(_transform, provider)| provider.range).sum();
+            total_range / vision_count as f32
+        } else {
+            // 如果没有视野提供者，设置为0
+            // If no vision providers, set to 0
+            0.0
+        };
+        
+        // 计算视野范围参数
+        // Calculate vision range parameters
+        let vision_range = if avg_vision_range > 0.0 {
+            // 使用更大的值来增强视野效果
+            // Use a larger value to enhance vision effect
+            // 这里使用固定值0.8来确保视野范围效果明显
+            // Using a fixed value of 0.8 to ensure the vision range effect is noticeable
+            0.8
+        } else {
+            0.0
+        };
+        
         let settings = GpuFogMaterial {
             color: fog_settings.color.to_linear(),
             use_noise: if fog_settings.noise_texture.is_some() {
@@ -124,6 +154,8 @@ pub fn prepare_fog_settings(
             noise_scale: fog_settings.noise_scale,
             noise_speed: fog_settings.noise_speed,
             time: time.elapsed_secs(), // 使用当前时间 / Use current time
+            vision_range, // 视野范围参数 / Vision range parameter
+            vision_falloff: 0.5, // 设置更小的衰减系数使边缘更柔和 / Set smaller falloff coefficient for softer edges
         };
 
         commands.entity(entity).insert(ViewFogOfWarUniformOffset {
