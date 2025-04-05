@@ -52,6 +52,7 @@ bevy = { version = "0.15", default-features = false, features = [
 ] }
 
 bevy_asset = { version = "0.15" }
+bytemuck = { version = "1.22.0" ,features = ["derive"] }
 
 [lints]
 workspace = true

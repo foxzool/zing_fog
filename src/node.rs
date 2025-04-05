@@ -81,7 +81,7 @@ impl FromWorld for FogOfWar2dPipeline {
                             multisampled: false,
                         },
                         count: None,
-                        binding: 1,
+                        binding: u32::MAX, // 使用 u32::MAX 让 BindGroupLayoutEntries::sequential 自动分配索引
                         visibility: ShaderStages::FRAGMENT,
                     },
                     // 添加采样器绑定
@@ -91,7 +91,7 @@ impl FromWorld for FogOfWar2dPipeline {
                             bevy::render::render_resource::SamplerBindingType::Filtering,
                         ),
                         count: None,
-                        binding: 2,
+                        binding: u32::MAX, // 使用 u32::MAX 让 BindGroupLayoutEntries::sequential 自动分配索引
                         visibility: ShaderStages::FRAGMENT,
                     },
                 ),
