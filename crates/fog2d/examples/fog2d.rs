@@ -361,7 +361,6 @@ fn update_fps_text(
 /// Update fog settings text system
 fn update_fog_settings_text(
     fog_settings: Single<&FogMaterial>,
-    vision_providers: Query<&VisionProvider>,
     mut query: Query<&mut Text, With<FogSettingsText>>,
 ) {
     for mut text in &mut query {
@@ -383,26 +382,16 @@ fn update_fog_settings_text(
             "Disabled"
         };
 
-        // 计算视野提供者数量和平均视野范围
-        // Calculate vision provider count and average vision range
-        let vision_count = vision_providers.iter().count();
-        let avg_vision_range = if vision_count > 0 {
-            vision_providers.iter().map(|v| v.range).sum::<f32>() / vision_count as f32
-        } else {
-            0.0
-        };
         
         // 更新设置文本
         // Update settings text
         **text = format!(
-            " Color: {}\n Noise Texture: {}\n Intensity: {:.2} (Q/E)\n Scale: {:.2} (Z/X)\n Speed: {:.2} (C/V)\n Vision Providers: {}\n Avg Vision Range: {:.2}\n Press N to toggle noise\n ",
+            " Color: {}\n Noise Texture: {}\n Intensity: {:.2} (Q/E)\n Scale: {:.2} (Z/X)\n Speed: {:.2} (C/V)\n  Press N to toggle noise\n ",
             color_text,
             noise_text,
             fog_settings.noise_intensity,
             fog_settings.noise_scale,
             fog_settings.noise_speed,
-            vision_count,
-            avg_vision_range
         );
     }
 }
