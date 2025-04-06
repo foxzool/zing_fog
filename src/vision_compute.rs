@@ -1,19 +1,18 @@
 use crate::prelude::VisionProvider;
 use crate::{VISIBILITY_TEXTURE_FORMAT, VISIBILITY_TEXTURE_SIZE};
+use bevy::ecs::query::QueryItem;
 use bevy::render::render_graph::{RenderLabel, ViewNode};
 use bevy::render::renderer::RenderDevice;
 use bevy::render::texture::CachedTexture;
+use bevy::render::{Extract, RenderApp};
 use bevy::{
     prelude::*,
     render::{
-        render_graph::{self, NodeRunError, RenderGraphContext},
+        render_graph::{NodeRunError, RenderGraphContext},
         render_resource::*,
         renderer::RenderContext,
     },
 };
-use bevy::ecs::query::QueryItem;
-use bevy::render::extract_resource::ExtractResourcePlugin;
-use bevy::render::{Render, RenderApp, RenderSet};
 use bytemuck::Pod;
 use bytemuck::Zeroable;
 
@@ -133,17 +132,22 @@ impl FromWorld for VisionComputePipeline {
 pub fn update_vision_params(
     mut vision_params: ResMut<VisionParamsResource>,
     render_device: Res<RenderDevice>,
-    query: Query<(&GlobalTransform, &VisionProvider)>,
+    query: Extract<Query<(&GlobalTransform, &VisionProvider)>>,
 ) {
-    // 收集所有视野提供者的参数
-    vision_params.params = query
+    let params: Vec<GpuVisionParams> = query
         .iter()
-        .map(|(transform, provider)| GpuVisionParams {
-            position: transform.translation().truncate(),
-            range: provider.range,
-            falloff: 0.5, // 可以根据需要调整
+        .map(|(transform, provider)| {
+
+            GpuVisionParams {
+                position: transform.translation().truncate(),
+                range: provider.range,
+                falloff: 0.5,
+            }
         })
         .collect();
+    
+    vision_params.params = params;
+
 
     // 更新或创建缓冲区
     if vision_params.params.is_empty() {
@@ -155,22 +159,30 @@ pub fn update_vision_params(
             usage: BufferUsages::STORAGE | BufferUsages::COPY_DST,
         });
         vision_params.buffer = Some(buffer);
+
     }
 }
+
+// 可见性纹理资源
+/// Visibility texture resource
+#[derive(Resource, Default)]
+pub struct VisibilityTextureResource {
+    pub texture: Option<CachedTexture>,
+}
+
+
 
 // 视野计算插件
 pub struct VisionComputePlugin;
 
 impl Plugin for VisionComputePlugin {
     fn build(&self, app: &mut App) {
-
-
         let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
             return;
         };
         render_app.init_resource::<VisionParamsResource>()
-            .add_systems(Render, update_vision_params.in_set(RenderSet::PrepareResources));
-
+            .init_resource::<VisibilityTextureResource>()
+            .add_systems(ExtractSchedule, update_vision_params);
     }
 }
 
@@ -179,7 +191,7 @@ pub struct VisionComputeLabel;
 
 // 计算节点
 pub struct VisionComputeNode {
-    visibility_texture: Option<CachedTexture>,
+    pub visibility_texture: Option<CachedTexture>,
     vision_params_buffer: Option<Buffer>,
     result_buffer: Option<Buffer>,
 }
@@ -227,6 +239,12 @@ impl ViewNode for VisionComputeNode {
             });
         }
 
+        // 更新可见性纹理资源
+        // Update visibility texture resource
+        if let Some(visibility_texture) = &self.visibility_texture {
+            let mut visibility_resource = world.resource_mut::<VisibilityTextureResource>();
+            visibility_resource.texture = Some(visibility_texture.clone());
+        }
     }
 
     fn run(

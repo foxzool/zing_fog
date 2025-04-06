@@ -31,15 +31,31 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // 遍历所有视野提供者
     for (var i = 0u; i < arrayLength(&visions.data); i++) {
         let vision = visions.data[i];
-        let dist = distance(uv, vision.position);
+        
+        // 将世界坐标转换为纹理坐标 (0-1 范围)
+        // Convert world coordinates to texture coordinates (0-1 range)
+        // 这里假设世界坐标范围是 [-500, 500]，需要根据实际情况调整
+        let vision_uv = (vision.position + vec2<f32>(500.0, 500.0)) / vec2<f32>(1000.0, 1000.0);
+        
+        let dist = distance(uv, vision_uv);
+        
+        // 调整视野范围以适应纹理坐标系统
+        // Adjust vision range to fit texture coordinate system
+        let adjusted_range = vision.range / 1000.0;
         
         // 计算该视野提供者的可见性贡献
-        let normalized_dist = dist / vision.range;
-        let visibility = 1.0 - smoothstep(0.6, 1.0, normalized_dist);
+        let normalized_dist = dist / adjusted_range;
+        // 使用更平滑的衰减曲线
+        // Use a smoother falloff curve
+        let visibility = 1.0 - smoothstep(0.0, 1.0, normalized_dist);
         
         // 取最大可见性
         max_visibility = max(max_visibility, visibility);
     }
+    
+    // 确保可见性值在有效范围内并增强对比度
+    // Ensure visibility value is in valid range and enhance contrast
+    max_visibility = clamp(max_visibility, 0.0, 1.0);
     
     // 存储结果到纹理
     textureStore(output_texture, global_id.xy, vec4<f32>(max_visibility));

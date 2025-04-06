@@ -1,5 +1,6 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::sync_world::SyncToRenderWorld};
 use std::collections::{HashMap, HashSet};
+use bevy::render::extract_component::ExtractComponent;
 use crate::fog::FogOfWarConfig;
 
 /// 地图区块坐标
@@ -44,7 +45,8 @@ pub struct FogChunkManager {
 
 /// 视野提供者组件
 /// Vision provider component
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, ExtractComponent, Clone)]
+#[require(Transform, Visibility)]
 pub struct VisionProvider {
     /// 视野范围（世界单位）
     /// Vision range (world units)
@@ -246,7 +248,7 @@ impl Plugin for FogChunkPlugin {
             .register_type::<ChunkCoord>()
             .register_type::<ChunkVisibility>()
             .register_type::<FogChunk>()
-            .register_type::<VisionProvider>()
+            // .register_type::<VisionProvider>()
             .add_systems(Update, (
                 update_chunk_visibility,
                 manage_chunks,

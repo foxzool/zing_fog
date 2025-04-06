@@ -1,4 +1,3 @@
-// 移除 VisionProvider 导入
 use bevy::color::ColorToComponents;
 use bevy::image::Image;
 use bevy::render::render_resource::AsBindGroup;

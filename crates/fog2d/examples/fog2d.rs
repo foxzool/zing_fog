@@ -7,6 +7,7 @@ use zing_fog2d::prelude::*;
 
 fn main() {
     App::new()
+        .insert_resource(ClearColor(Color::WHITE))
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
@@ -93,8 +94,23 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             custom_size: Some(Vec2::new(100.0, 100.0)),
             ..default()
         },
+        Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
         VisionProvider {
-            range: 100.0, // 视野范围 / Vision range
+            range: 500.0, // 增大视野范围 / Increased vision range
+        },
+    ));
+    
+    // 生成额外的视野提供者
+    // Spawn additional vision providers
+    commands.spawn((
+        Sprite {
+            color: GOLD.into(),
+            custom_size: Some(Vec2::new(80.0, 80.0)),
+            ..default()
+        },
+        Transform::from_translation(Vec3::new(200.0, 200.0, 0.0)),
+        VisionProvider {
+            range: 400.0,
         },
     ));
 

@@ -4,7 +4,7 @@ use bevy::{
     asset::{AssetServer, Handle},
     core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state,
     ecs::{query::QueryItem, system::lifetimeless::Read},
-    prelude::{Commands, FromWorld, Image, Resource, World},
+    prelude::{ FromWorld, Image, Resource, World},
     render::{
         render_asset::RenderAssets,
         render_graph::{NodeRunError, RenderGraphContext, RenderLabel, ViewNode},
@@ -34,6 +34,8 @@ pub struct FogOfWar2dPipeline {
     pub bind_group_layout: BindGroupLayout,
     pub pipeline_id: CachedRenderPipelineId,
     pub noise_texture: Option<Handle<Image>>,
+    // 添加对可见性纹理的引用
+    // Add reference to visibility texture
 }
 
 impl FromWorld for FogOfWar2dPipeline {
@@ -92,6 +94,20 @@ impl FromWorld for FogOfWar2dPipeline {
                         ),
                         count: None,
                         binding: u32::MAX, // 使用 u32::MAX 让 BindGroupLayoutEntries::sequential 自动分配索引
+                        visibility: ShaderStages::FRAGMENT,
+                    },
+                    // 添加可见性纹理绑定
+                    // Add visibility texture binding
+                    BindGroupLayoutEntry {
+                        ty: BindingType::Texture {
+                            sample_type: bevy::render::render_resource::TextureSampleType::Float {
+                                filterable: true,
+                            },
+                            view_dimension: bevy::render::render_resource::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                        binding: u32::MAX,
                         visibility: ShaderStages::FRAGMENT,
                     },
                 ),
@@ -208,6 +224,22 @@ impl ViewNode for FogNode2d {
             .d2
             .sampler;
 
+        // 获取可见性纹理（从VisibilityTextureResource资源中）
+        // Get visibility texture (from VisibilityTextureResource resource)
+        let visibility_texture_view = if let Some(visibility_texture_resource) = world.get_resource::<crate::vision_compute::VisibilityTextureResource>() {
+            if let Some(visibility_texture) = &visibility_texture_resource.texture {
+                &visibility_texture.default_view
+            } else {
+                // 如果可见性纹理不可用，使用回退图像
+                // If visibility texture is not available, use fallback image
+                &fallback_image.d2.texture_view
+            }
+        } else {
+            // 如果找不到VisibilityTextureResource，使用回退图像
+            // If VisibilityTextureResource is not found, use fallback image
+            &fallback_image.d2.texture_view
+        };
+
         let bind_group = render_context.render_device().create_bind_group(
             None,
             &fog_of_war_pipeline.bind_group_layout,
@@ -218,9 +250,10 @@ impl ViewNode for FogNode2d {
                 // Add noise texture and sampler bindings
                 BindingResource::TextureView(noise_texture_view),
                 BindingResource::Sampler(sampler),
-                // fog_sight_buffers.buffers.into_binding(),
-                // fog_of_war_pipeline.explored_texture.as_ref().unwrap(),
-                // ring_buffers.buffers.into_binding(),
+                // 添加可见性纹理绑定
+                // Add visibility texture binding
+                BindingResource::TextureView(visibility_texture_view),
+                
             )),
         );
 
@@ -244,5 +277,3 @@ impl ViewNode for FogNode2d {
         Ok(())
     }
 }
-
-pub fn prepare_bind_groups(commands: Commands) {}

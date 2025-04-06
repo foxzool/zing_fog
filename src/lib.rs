@@ -1,13 +1,18 @@
+use crate::chunk::VisionProvider;
+use crate::vision_compute::VisionComputePlugin;
 use crate::{
-    fog::{FogMaterial, FogOfWarConfig, FogOfWarMeta, prepare_fog_settings},
-    node::{FogNode2d, FogNode2dLabel, FogOfWar2dPipeline, prepare_bind_groups},
     chunk::FogChunkPlugin,
+    fog::{FogMaterial, FogOfWarConfig, FogOfWarMeta, prepare_fog_settings},
+    node::{FogNode2d, FogNode2dLabel, FogOfWar2dPipeline},
     vision_compute::{VisionComputeNode, VisionComputePipeline},
 };
+use bevy::prelude::IntoSystemConfigs;
+use bevy::render::render_resource::TextureFormat;
+use bevy::render::sync_component::SyncComponentPlugin;
 use bevy::{
     app::{App, Plugin},
     core_pipeline::core_2d::graph::{Core2d, Node2d},
-    prelude::{IntoSystemConfigs, Shader},
+    prelude::Shader,
     render::{
         Render, RenderApp, RenderSet,
         extract_component::ExtractComponentPlugin,
@@ -15,10 +20,8 @@ use bevy::{
         render_graph::{RenderGraphApp, ViewNodeRunner},
     },
 };
-use bevy::render::render_resource::TextureFormat;
 use bevy_asset::{Handle, load_internal_asset};
 use vision_compute::VisionComputeLabel;
-use crate::vision_compute::VisionComputePlugin;
 
 pub mod prelude;
 
@@ -32,7 +35,8 @@ mod vision_compute;
 
 #[cfg(feature = "2d")]
 pub const FOG_2D_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(2645352199453808407);
-pub const VISION_COMPUTE_SHADER_HANDLE: Handle<Shader> = Handle::weak_from_u128(2645352199453808408);
+pub const VISION_COMPUTE_SHADER_HANDLE: Handle<Shader> =
+    Handle::weak_from_u128(2645352199453808408);
 
 pub const VISIBILITY_TEXTURE_FORMAT: TextureFormat = TextureFormat::R32Float;
 pub const VISIBILITY_TEXTURE_SIZE: u32 = 1024;
@@ -47,8 +51,8 @@ impl Plugin for ZingFogPlugins {
         app.init_resource::<FogOfWarConfig>();
 
         app.register_type::<FogMaterial>()
-            .register_type::<chunk::VisionProvider>() // 注册VisionProvider类型
             .add_plugins(ExtractComponentPlugin::<FogMaterial>::default())
+            .add_plugins(ExtractComponentPlugin::<VisionProvider>::default())
             .add_plugins(FogChunkPlugin)
             .add_plugins(VisionComputePlugin);
 
@@ -64,7 +68,6 @@ impl Plugin for ZingFogPlugins {
                 Render,
                 prepare_fog_settings.in_set(RenderSet::PrepareResources),
             )
-            .add_systems(Render, prepare_bind_groups.in_set(RenderSet::Prepare))
             .add_render_graph_node::<ViewNodeRunner<FogNode2d>>(Core2d, FogNode2dLabel)
             .add_render_graph_node::<ViewNodeRunner<VisionComputeNode>>(Core2d, VisionComputeLabel)
             .add_render_graph_edges(
