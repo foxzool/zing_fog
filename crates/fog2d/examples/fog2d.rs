@@ -96,7 +96,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
         VisionProvider {
-            range: 500.0, // 增大视野范围 / Increased vision range
+            range: 50.0, // 增大视野范围 / Increased vision range
         },
     ));
     
@@ -110,7 +110,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         Transform::from_translation(Vec3::new(200.0, 200.0, 0.0)),
         VisionProvider {
-            range: 400.0,
+            range: 40.0,
         },
     ));
 
@@ -135,7 +135,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         // Add vision provider to blocks with even indices
         if i % 2 == 0 {
             entity_commands.insert(VisionProvider {
-                range: 300.0 + (i as f32 * 20.0), // 不同范围的视野 / Different vision ranges
+                range: 30.0 + (i as f32 * 20.0), // 不同范围的视野 / Different vision ranges
             });
         }
     }
