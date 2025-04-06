@@ -13,6 +13,9 @@ use bevy::{
         renderer::RenderContext,
     },
 };
+use bevy::ecs::system::lifetimeless::Read;
+use bevy::render::render_resource::binding_types::uniform_buffer;
+use bevy::render::view::{ViewUniform, ViewUniformOffset, ViewUniforms};
 use bytemuck::Pod;
 use bytemuck::Zeroable;
 
@@ -55,6 +58,9 @@ impl FromWorld for VisionComputePipeline {
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::COMPUTE,
                 (
+                    // view
+                    uniform_buffer::<ViewUniform>(true),
+
                     // Vision params storage buffer
                     BindGroupLayoutEntry {
                         ty: BindingType::Buffer {
@@ -207,7 +213,7 @@ impl Default for VisionComputeNode {
 }
 
 impl ViewNode for VisionComputeNode {
-    type ViewQuery = ();
+    type ViewQuery = (Read<ViewUniformOffset>);
 
     fn update(&mut self, world: &mut World) {
         // 首先获取所有需要的资源
@@ -251,11 +257,16 @@ impl ViewNode for VisionComputeNode {
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (): QueryItem<Self::ViewQuery>,
+        (view_uniform_offset): QueryItem<Self::ViewQuery>,
         world: &World,
     ) -> Result<(), NodeRunError> {
         let pipeline = world.resource::<VisionComputePipeline>();
         let pipeline_cache = world.resource::<PipelineCache>();
+        let view_uniforms = world.resource::<ViewUniforms>();
+
+        let Some(view_uniforms_binding) = view_uniforms.uniforms.binding() else {
+            return Ok(());
+        };
 
         let Some(compute_pipeline) = pipeline_cache.get_compute_pipeline(pipeline.pipeline_id)
         else {
@@ -274,6 +285,7 @@ impl ViewNode for VisionComputeNode {
             None,
             &pipeline.bind_group_layout,
             &BindGroupEntries::sequential((
+                                              view_uniforms_binding,
                 vision_params_buffer.as_entire_binding(),
                 self.result_buffer.as_ref().unwrap().as_entire_binding(),
                 &visibility_texture.default_view,
@@ -285,7 +297,7 @@ impl ViewNode for VisionComputeNode {
             .command_encoder()
             .begin_compute_pass(&ComputePassDescriptor::default());
         compute_pass.set_pipeline(compute_pipeline);
-        compute_pass.set_bind_group(0, &bind_group, &[]);
+        compute_pass.set_bind_group(0, &bind_group, &[view_uniform_offset.offset]);
 
         let workgroup_size = 8;
         let dispatch_size = (VISIBILITY_TEXTURE_SIZE + workgroup_size - 1) / workgroup_size;

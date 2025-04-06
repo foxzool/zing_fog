@@ -1,3 +1,5 @@
+#import bevy_render::view::View
+
 // 视野参数结构体
 struct VisionParams {
     position: vec2<f32>,  // 世界空间位置
@@ -15,9 +17,10 @@ struct ComputeResult {
     visibility: array<f32>,
 };
 
-@group(0) @binding(0) var<storage, read> visions: VisionArray;
-@group(0) @binding(1) var<storage, read_write> result: ComputeResult;
-@group(0) @binding(2) var output_texture: texture_storage_2d<r32float, write>;
+@group(0) @binding(0) var<uniform> view: View;
+@group(0) @binding(1) var<storage, read> visions: VisionArray;
+@group(0) @binding(2) var<storage, read_write> result: ComputeResult;
+@group(0) @binding(3) var output_texture: texture_storage_2d<r32float, write>;
 
 // 计算着色器入口点
 @compute @workgroup_size(8, 8)
