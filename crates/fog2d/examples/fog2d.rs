@@ -135,7 +135,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         // Add vision provider to blocks with even indices
         if i % 2 == 0 {
             entity_commands.insert(VisionProvider {
-                range: 30.0 + (i as f32 * 20.0), // 不同范围的视野 / Different vision ranges
+                range: 30.0 + (i as f32 * 15.0), // 不同范围的视野 / Different vision ranges
             });
         }
     }
